@@ -123,17 +123,45 @@ REPLACE="
 
 print_modname() {
   ui_print "*******************************"
-  ui_print "     Magisk Module Template    "
+  ui_print " Disable AAC/FLAC DSP Offload  "
   ui_print "*******************************"
 }
 
 # Copy/extract your module files into $MODPATH in on_install.
 
+AUDIO_CONF_PATH="/system/etc/audio_policy.conf";
+AUDIO_XML_PATH="/system/etc/audio_policy_configuration.xml";
+
 on_install() {
-  # The following is the default implementation: extract $ZIPFILE/system to $MODPATH
-  # Extend/change the logic to whatever you want
-  ui_print "- Extracting module files"
-  unzip -o "$ZIPFILE" 'system/*' -d $MODPATH >&2
+  # Make sure that the folder we want to write to exists
+  mkdir -p "$MODPATH/system/etc"
+
+  # Patch the legacy format configuration
+  if [[ -f $AUDIO_CONF_PATH ]]; then
+    ui_print "- Creating modified (legacy) audio_policy.conf";
+    cat "$AUDIO_CONF_PATH" | awk '{
+      if ($1 == "compress_offload" && $2 == "{") in_section = 1;
+      else if ($1 == "}") in_section = 0;
+      if (in_section && $1 == "formats")
+        gsub(/\|(AUDIO_FORMAT_FLAC|AUDIO_FORMAT_AAC[^\|]*)/, "", $2);
+      print;
+    }'> "$MODPATH$AUDIO_CONF_PATH"
+  fi
+
+  # Patch the XML format configuration
+  if [[ -f $AUDIO_XML_PATH ]]; then
+    ui_print "- Creating modified audio_policy_configuration.xml";
+    cat "$AUDIO_XML_PATH" | awk -v RS='[<|>]' '{
+      if ($1 == "mixPort" && $2 == "name=\"compressed_offload\"")
+        in_section = 1;
+      else if ($1 == "/mixPort")
+        in_section = 0;
+      if (in_section && $1 == "profile" && $3 ~ /format=\"(AUDIO_FORMAT_FLAC|AUDIO_FORMAT_AAC[^\"]*)\"/)
+        printf "%s%s%s", "!-- <", $0, "> -->";
+      else
+        printf "%s%s", $0, RT;
+    }' > "$MODPATH$AUDIO_XML_PATH";
+  fi
 }
 
 # Only some special files require specific permissions

@@ -1,7 +1,20 @@
-# Magisk Installer
+# Disable AAC/FLAC DSP Offload
 
-**Update `README.md` if you want to submit your module to the online repo!**
+On some devices like the LG G5, LineageOS attempts to offload AAC and FLAC
+decoding to the DSP even when it is not supported. This manifests as broken
+playback for those codecs.
 
-For more information about how to use this module installer, please refer to [documentations](https://topjohnwu.github.io/Magisk/guides.html)
+This Magisk module patches the file `/system/etc/audio_policy_configuration.xml`
+(and the legacy `audio_policy.conf`) to disable this behaviour. To simplify
+parsing with `awk`, some assumptions are made:
 
-If you are not familiar with the Markdown syntax, you can start by experimenting on GitHub's online Markdown editor, which will let you preview before publishing. If you need more help, the [Markdown Cheat Sheet](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet) will be handy.
+- The offloaded mix ports are named `compress_offload`
+- The formats to be removed from offloading are not the first in their list in
+  the legacy format
+
+It is currently not compatible with other modules that modify the audio policy
+files (i.e. it does not use
+[AML](https://github.com/Zackptg5/Audio-Modification-Library)). The files are
+patched once during the installation and from then on mounted from the module.
+
+Magisk 18 is required.

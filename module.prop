@@ -1,6 +1,6 @@
-id=template
-name=Template Module
+id=jakobend.disable_aac_flac_dsp
+name=Disable AAC/FLAC DSP Offload
 version=v1
 versionCode=1
-author=topjohnwu
-description=A short description
+author=jakobend
+description=Disables DSP offload for AAC and FLAC decoding for devices that do not support it.
